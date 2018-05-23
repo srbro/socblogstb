@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="device_type">stb</string>
+    <string name="user_agent">KST7268</string>
+    <string name="clientId" translatable="false">5dd5c0de-14f0-401c-b3dc-e37bf0b01216</string>
+    <string name="clientSecret" translatable="false">90iqj2kxmxexamq5jcz7fatj7x3ww7fnc9n0z6lq</string>
+    <string name="webview_address" translatable="false">file:///android_asset/portal/uc/v1/index.html</string>
+    <string name="app_update_dialog_title">Application Update</string>
+    <string name="app_update_dialog_msg">There is a new app update, click to perform update</string>
+    <string name="app_update_dialog_positive_btn">Update</string>
+    <string name="app_update_dialog_negative_btn">Not now</string>
+    <string name="app_update_dialog_info_msg">New app update is available\nNew Version: %s \nDescription: %s</string>
+</resources>

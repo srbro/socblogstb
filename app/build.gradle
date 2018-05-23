@@ -1,0 +1,185 @@
+import java.util.regex.Matcher
+import java.util.regex.Pattern
+import groovy.util.AntBuilder
+import org.apache.tools.ant.taskdefs.condition.Os
+
+buildscript {
+    repositories {
+        maven { url 'https://maven.fabric.io/public' }
+    }
+
+    dependencies {
+        // These docs use an open ended version so that our plugin
+        // can be updated quickly in response to Android tooling updates
+
+        // We recommend changing it to the latest version from our changelog:
+        // https://docs.fabric.io/android/changelog.html#fabric-gradle-plugin
+        classpath 'io.fabric.tools:gradle:1.+'
+    }
+}
+
+apply plugin: 'com.android.application'
+apply plugin: 'io.fabric'
+
+repositories {
+    maven { url 'https://maven.fabric.io/public' }
+}
+
+def getCommitHash = { ->
+    def stdout = new ByteArrayOutputStream()
+    exec {
+        commandLine 'git', 'rev-parse', '--short' , 'HEAD'
+        standardOutput = stdout
+    }
+    return stdout.toString().trim()
+}
+
+def getCurrentFlavor() {
+    Gradle gradle = getGradle()
+    String taskRequest = gradle.getStartParameter().getTaskRequests().toString()
+
+    def pattern = taskRequest.contains("assemble") ?
+            Pattern.compile("assemble(\\w+)(Release|Debug)") :
+            Pattern.compile("generate(\\w+)(Release|Debug)")
+
+    Matcher matcher = pattern.matcher(taskRequest)
+
+    return matcher.find() ? matcher.group(1).toLowerCase() : ""
+}
+
+task buildChameleon() {
+    def flavor = getCurrentFlavor()
+    if(flavor != 'stb' && flavor != 'tv')
+        return
+
+    def props = System.getProperties()
+    if (props['idea.platform.prefix'] == 'AndroidStudio') {
+        println 'Chameleon build task has been started from Android Studio'
+
+        def platform = flavor == 'stb' ? 'stb' : 'androidtv'
+        def environment = flavor == 'stb' ? 'stbenv' : 'stage'
+        def yarnCommand = ''
+        if(Os.isFamily(Os.FAMILY_MAC) || Os.isFamily(Os.FAMILY_UNIX)) {
+            yarnCommand = 'yarn'
+        } else if(Os.isFamily(Os.FAMILY_WINDOWS)) {
+            yarnCommand = 'yarn.cmd'
+        }
+
+        exec {
+            workingDir projectDir.path + '/../../chameleon'
+            commandLine yarnCommand, 'build', platform, environment
+        }
+        new AntBuilder().copy(todir:projectDir.path + '/src/' + flavor + '/assets/portal/uc/') {
+            fileset(dir:projectDir.path + '/../../chameleon/dist/portal/uc/' + platform + '/')
+        }
+    } else {
+        println 'Chameleon build task has been started outside Android Studio: skipping...'
+    }
+}
+
+android {
+    signingConfigs {
+        stb_config {
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+            storeFile file("${System.getProperty('user.home')}/UcKeystore/platform.jks")
+            storePassword 'android'
+        }
+        tv_config {
+            keyAlias 'eon'
+            keyPassword 'United2017'
+            storeFile file("${System.getProperty('user.home')}/UcKeystore/UG_EON.keystore")
+            storePassword 'United2017'
+        }
+    }
+    compileSdkVersion 26
+    buildToolsVersion '26.0.2'
+    defaultConfig {
+        applicationId "com.ug.eon.android.tv"
+        minSdkVersion 21
+        targetSdkVersion 26
+        versionCode 17
+        versionName "2.17.1"
+        // ndk {
+        //    abiFilters "armeabi-v7a", "x86", "armeabi", "mips"
+        // }
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+
+    flavorDimensions "eon"
+    productFlavors {
+        stb {
+            dimension "eon"
+            signingConfig signingConfigs.stb_config
+        }
+
+        tv {
+            dimension "eon"
+            signingConfig signingConfigs.tv_config
+        }
+    }
+
+    buildTypes {
+        buildTypes.each {
+            it.buildConfigField "String", "COMMIT_HASH", "\"${getCommitHash()}\""
+        }
+
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+
+        debug {
+            signingConfig android.buildTypes.release.signingConfig
+        }
+    }
+
+    sourceSets {
+        tv.java.srcDir 'src/main/java'
+        stb.java.srcDir 'src/stb/java'
+    }
+
+    lintOptions {
+        checkReleaseBuilds false
+        // Or, if you prefer, you can continue to check for errors in release builds,
+        // but continue the build even when errors are found:
+        abortOnError false
+    }
+    compileOptions {
+        targetCompatibility 1.8
+        sourceCompatibility 1.8
+    }
+}
+
+dependencies {
+    implementation 'com.squareup.retrofit2:retrofit:2.3.0'
+    implementation 'com.google.code.gson:gson:2.8.2'
+    implementation 'com.squareup.retrofit2:converter-gson:2.3.0'
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation 'com.android.support:leanback-v17:26.1.0'
+    implementation 'com.android.support:appcompat-v7:26.1.0'
+    // compile 'com.github.bumptech.glide:glide:3.4.+'
+    implementation 'com.google.android.exoplayer:exoplayer:2.6.0'
+    implementation 'org.jsoup:jsoup:1.10.2'
+    implementation 'com.google.android.exoplayer:extension-okhttp:r2.4.2'
+    // compile 'com.squareup.okhttp3:logging-interceptor:3.4.1'
+    implementation('com.crashlytics.sdk.android:crashlytics:2.8.0@aar') {
+        transitive = true;
+    }
+    implementation 'com.android.support:support-tv-provider:26.1.0'
+    implementation project(':viblast-2.13-release')
+
+    // Required -- JUnit 4 framework
+    testImplementation 'junit:junit:4.12'
+    testImplementation group: 'org.json', name: 'json', version: '20080701'
+    // Optional -- Mockito framework
+    testImplementation 'org.mockito:mockito-core:2.15.0'
+
+    // Required for instrumented tests
+    androidTestImplementation 'com.android.support:support-annotations:27.0.0'
+    androidTestImplementation 'com.android.support.test:runner:1.0.1'
+    androidTestImplementation 'com.android.support.test:rules:1.0.1'
+
+    // Optional -- Hamcrest library
+    androidTestImplementation 'org.hamcrest:hamcrest-library:1.3'
+}

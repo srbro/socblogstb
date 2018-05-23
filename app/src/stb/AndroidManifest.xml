@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.ug.eon.android.tv">
+
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
+    <uses-permission android:name="android.permission.READ_PRIVILEGED_PHONE_STATE"
+        tools:ignore="ProtectedPermissions" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
+    <uses-permission android:name="com.android.providers.tv.permission.READ_EPG_DATA" />
+    <uses-permission android:name="com.android.providers.tv.permission.WRITE_EPG_DATA" />
+    <uses-permission android:name="com.android.providers.tv.permission.ACCESS_ALL_EPG_DATA" />
+    <uses-permission android:name="com.android.providers.tv.permission.ACCESS_WATCHED_PROGRAMS" />
+    <uses-permission android:name="android.permission.READ_TV_LISTINGS" />
+
+    <uses-permission android:name="android.permission.MODIFY_PARENTAL_CONTROLS" />
+    <uses-permission android:name="android.permission.GLOBAL_SEARCH" tools:ignore="ProtectedPermissions"/>
+    <uses-permission android:name="net.quber.tv.permission.RECEIVE_INPUT_EVENT"/>
+
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="false" />
+
+    <uses-feature
+        android:name="android.software.live_tv"
+        android:required="true" />
+
+    <uses-feature
+        android:name="android.software.leanback"
+        android:required="true" />
+
+    <application
+        android:allowBackup="false"
+        android:banner="@drawable/eon_app_graphic"
+        android:hardwareAccelerated="true"
+        android:icon="@drawable/eon_icon"
+        android:label="@string/app_name"
+        android:largeHeap="true"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Leanback">
+        <activity
+            android:name=".TvActivity"
+            android:hardwareAccelerated="true"
+            android:label="@string/app_name"
+            android:launchMode="singleTask"
+            android:screenOrientation="landscape">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="vnd.android.cursor.item/channel" />
+                <data android:mimeType="vnd.android.cursor.dir/channel" />
+                <data android:mimeType="vnd.android.cursor.item/program" />
+                <data android:mimeType="vnd.android.cursor.dir/program" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".searchintegration.EonLiveTVSearchActivity"
+            android:label="@string/search_livetv_label"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.SEARCH" />
+            </intent-filter>
+            <meta-data android:name="android.app.searchable" android:resource="@xml/searchable_livetv" />
+        </activity>
+
+        <activity
+            android:name=".searchintegration.EonCUTVSearchActivity"
+            android:label="@string/search_cutv_label"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.SEARCH" />
+            </intent-filter>
+            <meta-data android:name="android.app.searchable" android:resource="@xml/searchable_cutv" />
+        </activity>
+
+        <activity
+            android:name=".searchintegration.EonVODSearchActivity"
+            android:label="@string/search_vod_label"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.SEARCH" />
+            </intent-filter>
+            <meta-data android:name="android.app.searchable" android:resource="@xml/searchable_vod" />
+        </activity>
+
+        <provider
+            android:name=".searchintegration.EonSearchProvider"
+            android:authorities="com.ug.eon.android.tv.searchintegration"
+            android:exported="true">
+            <path-permission
+                android:pathPrefix="/search"
+                android:readPermission="android.permission.GLOBAL_SEARCH"
+            />
+        </provider>
+
+
+        <meta-data
+            android:name="io.fabric.ApiKey"
+            android:value="89119d05e45f055cdc9e7e03edc2e5f898dd8cdc"/>
+
+        <receiver
+            android:name=".channels.receivers.RunOnInstallAndBootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.media.tv.action.INITIALIZE_PROGRAMS" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".receiver.StartUpReceiver"
+            android:enabled="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </receiver>
+
+        <provider
+            android:name=".contentprovider.CommunityIdProvider"
+            android:authorities="com.ug.eon.android.tv.contentprovider.CommunityIdProvider"
+            android:enabled="true"
+            android:exported="true" />
+
+        <receiver
+            android:name=".receiver.SpecialRCUKeysReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.ug.eon.android.tv.specialkeys" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </receiver>
+
+        <receiver android:name=".receiver.FirstTimeStartUpReceiver"
+            android:enabled="true">
+            <intent-filter>
+                <action android:name="com.google.android.tvlauncher.action.PARTNER_CUSTOMIZATION" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </receiver>
+
+        <activity android:name=".channels.applinks.AppLinksActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data
+                    android:host="app"
+                    android:scheme="eon" />
+            </intent-filter>
+        </activity>
+
+        <activity android:name=".channels.watchnext.EonWatchNextActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data
+                    android:host="watchnext"
+                    android:scheme="eon" />
+            </intent-filter>
+        </activity>
+
+        <activity android:name=".ProvisioningActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data
+                    android:host="provisioning"
+                    android:scheme="eon" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".channels.services.ChannelManagementService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <service
+            android:name=".channels.services.ProgramManagementService"
+            android:permission="android.permission.BIND_JOB_SERVICE"
+            android:exported="false" />
+
+        <service
+            android:name=".channels.services.WatchNextChannelService"
+            android:permission="android.permission.BIND_JOB_SERVICE"
+            android:exported="false" />
+
+        <service
+            android:name=".tif.dvbchannelssync.DVBChannelsSyncService"
+            android:permission="android.permission.BIND_JOB_SERVICE"
+            android:exported="false" />
+    </application>
+</manifest>

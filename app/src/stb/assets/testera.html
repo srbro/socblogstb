@@ -1,0 +1,60 @@
+<html>
+    <head>
+    </head>
+    <body>
+        <script>
+
+        var localArray = [
+          'deviceNumber',
+          'accessObj',
+          'lang',
+          'videoType',
+          'zapBannerTimeout',
+          'zapBannerOnNewEvent',
+          'firstAudioLanguage',
+          'secondAudioLanguage',
+          'audioType',
+          'videoEncoding',
+          'keyboardLanguage'
+        ],
+        val;
+
+        function storeData () {
+
+            // localStorage.setItem('zapBannerTimeout','1000')
+            // localStorage.setItem('lang','srp')
+
+
+            // localStorage.removeItem('zapBannerTimeout','1000')
+            // localStorage.removeItem('lang','srp')
+
+            // DATER.remove('zapBannerTimeout')
+            // DATER.remove('lang')
+
+            var storedAccessObj = DATER.load('accessObj')
+            var storedLang = DATER.load('lang')
+
+            for (var i = 0; i < localArray.length; i += 1) {
+                val = localStorage.getItem(localArray[i]);
+
+                if (val !== null && val !== "null") {
+                    // DATER.popupMsg(localArray[i],val)
+                    DATER.store(localArray[i],val)
+                }
+            }
+
+            try {
+                // DATER.store('dataTransfered',JSON.stringify('1'))
+             } catch (err) {
+                console.log('ERROR: ' + err)
+             }
+            // DATER.popupMsg('dataTransfered','1')
+
+              DATER.finishTransfer()
+        }
+
+        storeData()
+
+        </script>
+    </body>
+</html>

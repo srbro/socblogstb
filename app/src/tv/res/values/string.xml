@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="device_type">android-tv</string>
+    <string name="user_agent">androidtv</string>
+    <string name="clientId" translatable="false">5a3e24b8-70cd-4958-b716-af9ce053e594</string>
+    <string name="clientSecret" translatable="false">aazy6orsi9elhhs17e47lfb4palgszw6igf4y26z</string>
+    <string name="webview_address" translatable="false">file:///android_asset/portal/uc/v1/index.html</string>
+</resources>
