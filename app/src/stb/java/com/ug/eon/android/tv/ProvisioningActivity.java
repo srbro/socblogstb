@@ -12,6 +12,8 @@ import com.ug.eon.android.tv.prefs.PreferenceManager;
 import com.ug.eon.android.tv.prefs.PreferenceManagerImpl;
 import com.ug.eon.android.tv.prefs.SharedPrefsProviderImpl;
 
+import static com.ug.eon.android.tv.web.UcWebInterface.STB_PROVISIONING_MODE;
+
 /**
  * Created by petar.stefanovic on 20/03/2018.
  */
@@ -40,7 +42,7 @@ public class ProvisioningActivity extends Activity {
 
         Intent mainActivityIntent = new Intent(context, TvActivity.class);
         mainActivityIntent.addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT);
-        mainActivityIntent.putExtra("mode", "stbprovisioning");
+        mainActivityIntent.putExtra("mode", STB_PROVISIONING_MODE);
 
         Log.i(TAG, "Starting TvActivity in provisioning mode");
         startActivity(mainActivityIntent);

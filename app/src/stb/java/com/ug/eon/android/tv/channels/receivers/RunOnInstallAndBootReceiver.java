@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.util.Log;
 
 import com.ug.eon.android.tv.channels.ChannelsManager;
+import com.ug.eon.android.tv.channels.DefaultChannelsManager;
 
 public class RunOnInstallAndBootReceiver extends BroadcastReceiver {
 
@@ -14,6 +15,7 @@ public class RunOnInstallAndBootReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         Log.d(TAG, "onReceive(): " + intent);
-        ChannelsManager.syncMainEonChannel(context);
+        ChannelsManager channelsManager = new DefaultChannelsManager();
+        channelsManager.syncMainEonChannel(context);
     }
 }

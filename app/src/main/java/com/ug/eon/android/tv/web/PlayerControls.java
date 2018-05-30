@@ -7,9 +7,9 @@ public class PlayerControls {
     private static final String TAG = PlayerControls.class.getName();
     private static final String STREAM_VOD = "stream_vod";
     private static final String STREAM_DVB = "stream_dvb";
-    private PlayerMode mPlayerMode;
     private PlayerInterface mUcLivePlayer;
     private PlayerInterface mUcPlayer;
+    private PlayerMode mPlayerMode;
 
     /**
      * Plays OTT or DVB-C stream. This method is called from javascript.
@@ -82,7 +82,6 @@ public class PlayerControls {
 
     @JavascriptInterface
     public void play() {
-        Log.d(TAG, "play");
         mUcPlayer.playPause(true);
     }
 

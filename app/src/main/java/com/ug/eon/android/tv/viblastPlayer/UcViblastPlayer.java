@@ -1,12 +1,13 @@
 package com.ug.eon.android.tv.viblastPlayer;
 
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.SurfaceView;
 
+import com.ug.eon.android.tv.BuildConfig;
 import com.ug.eon.android.tv.drm.DrmInfoProvider;
 import com.ug.eon.android.tv.prefs.PreferenceManager;
 import com.ug.eon.android.tv.util.EventListener;
+import com.ug.eon.android.tv.util.LogUC;
 import com.ug.eon.android.tv.web.PlayerInterface;
 import com.viblast.android.ViblastConfig;
 import com.viblast.android.ViblastPlayer;
@@ -17,7 +18,7 @@ import java.util.List;
 import static com.ug.eon.android.tv.util.EventListener.*;
 
 public class UcViblastPlayer implements PlayerInterface {
-	private static final String TAG = UcViblastPlayer.class.getName();
+	private static final String TAG = UcViblastPlayer.class.getSimpleName();
 	// viblast config settings
 	private static final String VIBLAST_KEY = "41bf9c71b80860e63d0ba7912e5075e4c8697c7f459eb86c2151" +
 			"73c6a660c88907920bd7d614c5e109a9b0dbc5da51278aa0dcc84f651f31cddab1d8abc564f60471ac3bc08eb922";
@@ -31,13 +32,15 @@ public class UcViblastPlayer implements PlayerInterface {
 	private EventListener mEventListener;
 	private boolean mVodMode;
 
+	private long mStartZapTime;
+
 	public UcViblastPlayer(SurfaceView viblastView, EventListener listener
 			, DrmInfoProvider drmInfoProvider, PreferenceManager preferenceManager) {
 		mEventListener = listener;
 		mDrmInfoProvider = drmInfoProvider;
 		mViblastDrmListener = new UcViblastDrmListener(preferenceManager);
         mViblastPlayer = new ViblastPlayer(viblastView, getConfig(), mViblastDrmListener);
-        startPlayer();
+        initPlayer();
 	}
 
 	private ViblastConfig getConfig() {
@@ -52,47 +55,47 @@ public class UcViblastPlayer implements PlayerInterface {
     }
 
 	@Override
-	public void startPlayer() {
+	public void initPlayer() {
 		mViblastPlayer.addListener(new ViblastPlayer.Listener() {
 			@Override
 			public void onVideoSizeChanged(int width, int height
 					, int unappliedRotationDegrees, float pixelWidthHeightRatio) {
-				Log.d(TAG, "video size changed: " + width + " " + height
+				LogUC.d(TAG, "video size changed: " + width + " " + height
 						+ " " + unappliedRotationDegrees + " " + pixelWidthHeightRatio);
 			}
 
 			@Override
 			public void onPlayerError(ViblastPlayer.ViblastPlayerException e) {
-				Log.d(TAG, "onPlayerError");
+				LogUC.d(TAG, "onPlayerError");
 				mEventListener.sendEvent(EVENT_ERROR);
 			}
 
 			@Override
 			public void onPlaybackStateChanged(ViblastPlayer.ViblastPlayerState viblastPlayerState) {
-				Log.d(TAG, "player state changed: " + viblastPlayerState.toString());
+				LogUC.d(TAG, "player state changed: " + viblastPlayerState.toString());
 				int state = getState(viblastPlayerState);
 				mEventListener.sendEvent(state); // pass event 2,3 - play success, 1 - play error
 			}
 
 			@Override
 			public void onQualityChanged(int qualityId) {
-				Log.d(TAG, "onQualityChanged");
+				LogUC.d(TAG, "onQualityChanged");
                 mEventListener.onBitrateChange(qualityId);
 			}
 
 			@Override
 			public void onAvailableQualities(List<ViblastQuality> list) {
-				Log.d(TAG, "available changed: " + list.size());
+				LogUC.d(TAG, "available changed: " + list.size());
 			}
 
 			@Override
 			public void onStreamDuration(boolean isVoD, long duration) {
-				Log.d(TAG, "available changed " + isVoD + "-" + duration);
+				LogUC.d(TAG, "available changed " + isVoD + "-" + duration);
 			}
 
 			@Override
 			public void onTransferFailure(String s, int i) {
-				Log.d(TAG, "On TransferFailure " + s + " " + i);
+				LogUC.d(TAG, "On TransferFailure " + s + " " + i);
 				if (i >= 400) { // 4xx, 5xx errors
                     mEventListener.sendEvent(EVENT_ERROR);
                 }
@@ -100,26 +103,29 @@ public class UcViblastPlayer implements PlayerInterface {
 
 			@Override
 			public void onViblastPlayerReleased() {
-				Log.d(TAG, "Viblast released");
+				LogUC.d(TAG, "Viblast released");
 			}
 		});
 	}
 
     @Override
 	public void playVideo(String url, boolean drmProtected) {
-		Log.d(TAG, "url: " + url + ", drm: " + drmProtected);
 		mVodMode = false;
 		playStream(url, 0, drmProtected);
 	}
 
 	@Override
 	public void playVideo(String url, Double ms, boolean drmProtected) {
-		Log.d(TAG, "mVodMode url: " + url);
 		mVodMode = true;
 		playStream(url, ms, drmProtected);
     }
 
     private void playStream(String url, double ms, boolean drmProtected) {
+		if (BuildConfig.DEBUG) {
+			LogUC.d(TAG, "url: " + url + ", drm: " + drmProtected + ", is vod: " + mVodMode);
+			mStartZapTime = System.currentTimeMillis();
+		}
+
 		if (mViblastPlayer != null) {
 			if (drmProtected) {
 				playDrmStream(url, ms);
@@ -144,20 +150,20 @@ public class UcViblastPlayer implements PlayerInterface {
 		if (mViblastPlayer != null) {
 			mViblastPlayer.seek(ms);
 		}
-		Log.d(TAG, "seekTo " + ms);
+		LogUC.d(TAG, "seekTo " + ms);
     }
 
     @Override
     public void resume() {
-		Log.d(TAG, "resume");
 		if (mViblastPlayer != null) {
 			mViblastPlayer.resume();
 		}
+		LogUC.d(TAG, "resume");
     }
 
     @Override
 	public void playPause(final boolean playPause) {
-		Log.d(TAG, "playPause: " + playPause + ", viblastRunning: " + isRunning());
+		LogUC.d(TAG, "playPause: " + playPause + ", viblastRunning: " + isRunning());
 		if (!isRunning()) {
 			stop();
 		}
@@ -174,7 +180,7 @@ public class UcViblastPlayer implements PlayerInterface {
 	}
 
 	public void pause() {
-		Log.d(TAG, "pause stream");
+		LogUC.d(TAG, "pause stream");
 		if (mViblastPlayer != null) {
 			mViblastPlayer.pause();
 		}
@@ -188,13 +194,21 @@ public class UcViblastPlayer implements PlayerInterface {
 
     @Override
     public void stop() {
-		Log.d(TAG, "video stop");
+		LogUC.d(TAG, "video stop");
 		if (mViblastPlayer != null) {
 			mViblastPlayer.stop();
 		}
     }
 
 	private int getState(ViblastPlayer.ViblastPlayerState state) {
+		if ((state == ViblastPlayer.ViblastPlayerState.PLAYING
+				|| state == ViblastPlayer.ViblastPlayerState.BUFFERING)
+				&& BuildConfig.DEBUG) {
+			LogUC.d(TAG, "Total zapping time: "
+					+ (System.currentTimeMillis() - mStartZapTime)
+					+ "ms, " + state.name());
+		}
+
 		switch (state) {
 			case IDLE:
 				return EVENT_STOPPED;

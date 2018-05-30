@@ -14,6 +14,13 @@ import com.google.gson.Gson;
 import com.ug.eon.android.tv.AppUpdater;
 import com.ug.eon.android.tv.UcServiceConnection;
 import com.ug.eon.android.tv.channels.ChannelsManager;
+import com.ug.eon.android.tv.channels.DefaultChannelsManager;
+import com.ug.eon.android.tv.channels.watchnext.WatchNextManager;
+import com.ug.eon.android.tv.config.ConfigurationManager;
+import com.ug.eon.android.tv.config.DefaultPropertyFileProvider;
+import com.ug.eon.android.tv.config.PropertyFileConfigurationManager;
+import com.ug.eon.android.tv.config.FeatureFactory;
+import com.ug.eon.android.tv.config.PropertyFileProvider;
 import com.ug.eon.android.tv.tif.dvbchannelssync.DVBChannelsSyncService;
 import com.ug.eon.android.tv.tif.parser.DvbChannelParserTask;
 import com.ug.eon.android.tv.web.StartupParameters;
@@ -381,6 +388,14 @@ public class WebDeviceInterface extends UcWebInterface {
     @Override
     public void onAuthenticated() {
         super.onAuthenticated();
-        ChannelsManager.syncWatchNextChannel(mActivity.getApplicationContext());
+        syncWatchNext();
+    }
+
+    private void syncWatchNext() {
+        PropertyFileProvider propertyFileProvider = new DefaultPropertyFileProvider();
+        ConfigurationManager configurationManager = new PropertyFileConfigurationManager(mAppContext, propertyFileProvider);
+        ChannelsManager channelsManager = new DefaultChannelsManager();
+        WatchNextManager watchNextManager = FeatureFactory.getWatchNextManager(channelsManager, configurationManager);
+        watchNextManager.syncWatchNext(mAppContext);
     }
 }

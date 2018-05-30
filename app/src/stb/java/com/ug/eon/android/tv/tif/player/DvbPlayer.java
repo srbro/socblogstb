@@ -5,11 +5,12 @@ import android.media.tv.TvContract;
 import android.media.tv.TvView;
 import android.net.Uri;
 import android.support.annotation.NonNull;
-import android.util.Log;
 
+import com.ug.eon.android.tv.BuildConfig;
 import com.ug.eon.android.tv.tif.provider.Channel;
 import com.ug.eon.android.tv.tif.provider.ChannelDataManager;
 import com.ug.eon.android.tv.util.EventListener;
+import com.ug.eon.android.tv.util.LogUC;
 import com.ug.eon.android.tv.web.PlayerInterface;
 
 /**
@@ -17,7 +18,7 @@ import com.ug.eon.android.tv.web.PlayerInterface;
  * Created by milan.adamovic on 3/5/18.
  */
 public class DvbPlayer extends TvView.TvInputCallback implements PlayerInterface {
-    private static final String TAG = DvbPlayer.class.getName();
+    private static final String TAG = DvbPlayer.class.getSimpleName();
     private EventListener mEventListener;
     private TvView mTvView;
     private Activity mActivity;
@@ -26,16 +27,18 @@ public class DvbPlayer extends TvView.TvInputCallback implements PlayerInterface
     private ChannelDataManager mChannelDataManager;
     private Channel mCurrentChannel;
 
+    private long mStartZapTime;
+
     public DvbPlayer(Activity activity, TvView tvView, EventListener eventListener) {
         mActivity = activity;
         mTvView = tvView;
         mEventListener = eventListener;
         mChannelDataManager = new ChannelDataManager(mActivity);
-        startPlayer();
+        initPlayer();
     }
 
     @Override
-    public void startPlayer() {
+    public void initPlayer() {
         mTvView.setCallback(this);
         mChannelDataManager.registerObserver();
     }
@@ -43,14 +46,15 @@ public class DvbPlayer extends TvView.TvInputCallback implements PlayerInterface
     @Override
     public void playDvbVideo(int networkId, int streamId, int serviceId) {
         mActivity.runOnUiThread(() -> {
+            if (BuildConfig.DEBUG) {
+                mStartZapTime = System.currentTimeMillis();
+            }
             if (shouldResumeChannel(networkId, streamId, serviceId)) {
-                Log.d(TAG, "resume playback");
+                LogUC.d(TAG, "resume playback");
                 tune(mCurrentChannel);
                 return;
             }
-            long startTime = System.currentTimeMillis();
             Channel channel = getChannel(networkId, streamId, serviceId);
-            Log.d(TAG, "channel fetched in " + (System.currentTimeMillis() - startTime) + "ms");
             if (channel != null)
                 tune(channel);
         });
@@ -67,7 +71,7 @@ public class DvbPlayer extends TvView.TvInputCallback implements PlayerInterface
     }
 
     private void tune(@NonNull Channel channel) {
-        Log.d(TAG, "channel id: " + channel.getId() + ", inputId: " + channel.getInputId());
+        LogUC.d(TAG, "channel id: " + channel.getId() + ", inputId: " + channel.getInputId());
         mStarted = true;
         mTvView.tune(channel.getInputId(), TvContract.buildChannelUri(channel.getId()));
         mCurrentChannel = channel;
@@ -85,6 +89,7 @@ public class DvbPlayer extends TvView.TvInputCallback implements PlayerInterface
 
     @Override
     public void destroy() {
+        mStarted = false;
         mTvView.reset();
         mTvView = null;
         mChannelDataManager.unregisterObserver();
@@ -92,13 +97,13 @@ public class DvbPlayer extends TvView.TvInputCallback implements PlayerInterface
 
     @Override
     public void onConnectionFailed(String inputId) {
-        Log.d(TAG, "connection failed");
+        LogUC.d(TAG, "connection failed");
         mEventListener.sendEvent(EventListener.EVENT_DVB_ERROR);
     }
 
     @Override
     public void onDisconnected(String inputId) {
-        Log.d(TAG, "disconnected");
+        LogUC.d(TAG, "disconnected");
         mEventListener.sendEvent(EventListener.EVENT_DVB_ERROR);
     }
 
@@ -109,13 +114,17 @@ public class DvbPlayer extends TvView.TvInputCallback implements PlayerInterface
 
     @Override
     public void onVideoAvailable(String inputId) {
-        Log.d(TAG, "video available");
+        if (BuildConfig.DEBUG) {
+            LogUC.d(TAG, "video available");
+            LogUC.d(TAG, "Total dvb zapping time: "
+                    + (System.currentTimeMillis() - mStartZapTime) + "ms");
+        }
         mEventListener.sendEvent(EventListener.EVENT_PLAYED);
     }
 
     @Override
     public void onVideoUnavailable(String inputId, int reason) {
-        Log.d(TAG, "video unavailable");
+        LogUC.d(TAG, "video unavailable");
         mEventListener.sendEvent(EventListener.EVENT_DVB_ERROR);
     }
 

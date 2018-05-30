@@ -5,7 +5,7 @@ package com.ug.eon.android.tv.web;
  */
 
 public interface PlayerInterface {
-    void startPlayer();
+    void initPlayer();
     void playVideo(String data, boolean drmProtected);
 
     /**

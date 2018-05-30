@@ -14,30 +14,18 @@ import com.ug.eon.android.tv.channels.watchnext.WatchNextProgramProvider;
  * Created by nemanja.todoric on 1/21/2018.
  */
 
-public final class ChannelsManager {
+public interface ChannelsManager {
+    /**
+     * Sync main EON channel.
+     * @param context
+     * @return true if request is accepted and processed, false otherwise.
+     */
+    public boolean syncMainEonChannel(Context context);
 
-    private static final String TAG = ChannelsManager.class.getName();
-    private static int WATCH_NEXT_SYNC_INTERVAL = 30 * 60 * 1000;
-
-    public static void syncChannels(Context context) {
-        syncMainEonChannel(context);
-        syncWatchNextChannel(context);
-    }
-
-    public static void syncMainEonChannel(Context context) {
-        Log.d(TAG, "Scheduling main EON channel sync service");
-        JobScheduler scheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
-        scheduler.schedule(new JobInfo.Builder(0,
-                new ComponentName(context, ChannelManagementService.class))
-                .setMinimumLatency(0).build());
-    }
-
-    public static void syncWatchNextChannel(Context context) {
-        Log.d(TAG, "Scheduling watch next channel sync service");
-        JobScheduler scheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
-        scheduler.schedule(new JobInfo.Builder(3,
-                new ComponentName(context, WatchNextChannelService.class))
-                .setPeriodic(WATCH_NEXT_SYNC_INTERVAL)
-                .setMinimumLatency(0).build());
-    }
+    /**
+     * Sync Watch Next channel.
+     * @param context
+     * @return true if request is accepted and processed, false otherwise.
+     */
+    public boolean syncWatchNextChannel(Context context);
 }

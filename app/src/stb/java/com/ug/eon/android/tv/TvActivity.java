@@ -17,13 +17,12 @@ import com.crashlytics.android.answers.Answers;
 import com.crashlytics.android.answers.CustomEvent;
 import com.crashlytics.android.core.CrashlyticsCore;
 import com.ug.eon.android.tv.NetworkCheck.NetworkReceiver;
-import com.ug.eon.android.tv.channels.ChannelUtils;
 import com.ug.eon.android.tv.channels.ChannelsManager;
+import com.ug.eon.android.tv.channels.DefaultChannelsManager;
 import com.ug.eon.android.tv.drm.DrmInfoProvider;
 import com.ug.eon.android.tv.infoserver.Authentication;
 import com.ug.eon.android.tv.infoserver.InfoServerClient;
 import com.ug.eon.android.tv.infoserver.InfoServerClientImpl;
-import com.ug.eon.android.tv.infoserver.entities.WatchNextItem;
 import com.ug.eon.android.tv.prefs.PreferenceManager;
 import com.ug.eon.android.tv.prefs.PreferenceManagerImpl;
 import com.ug.eon.android.tv.prefs.SharedPrefsProvider;
@@ -35,9 +34,9 @@ import com.ug.eon.android.tv.web.PlayerInterface;
 import com.ug.eon.android.tv.web.StartupParameters;
 import com.ug.eon.android.tv.web.hal.WebDeviceInterface;
 
-import java.util.List;
-
 import io.fabric.sdk.android.Fabric;
+
+import static com.ug.eon.android.tv.web.UcWebInterface.STB_PROVISIONING_MODE;
 
 /*
  * Main activity which shows WebView EON application.
@@ -48,7 +47,7 @@ public class TvActivity extends Activity {
 
     private NetworkReceiver mNetworkReceiver;
     private WebDeviceInterface mWebDeviceInterface;
-    private UcViblastPlayer mUcPlayer;
+    private PlayerInterface mUcPlayer;
     private PlayerInterface mUcLivePlayer;
     private boolean mCreated;
     private Dpad mDPad;
@@ -78,6 +77,8 @@ public class TvActivity extends Activity {
 
         setContentView(R.layout.activity_tv);
 
+        startService(new Intent(TvActivity.this, EONWatchdogService.class));
+
         mCreated = false;
         mProvisioningMode = false;
         mDPad = new Dpad();
@@ -87,8 +88,10 @@ public class TvActivity extends Activity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         Answers.getInstance().logCustom(new CustomEvent(EVENT_APP_STARTED));
 
-        if (!mProvisioningMode)
-            ChannelsManager.syncMainEonChannel(this);
+        if (!mProvisioningMode) {
+            ChannelsManager channelsManager = new DefaultChannelsManager();
+            channelsManager.syncMainEonChannel(this);
+        }
     }
 
     private void initMainActivityOnCreate() {
@@ -100,7 +103,7 @@ public class TvActivity extends Activity {
 
         mWebDeviceInterface = new WebDeviceInterface(this, params);
 
-        mProvisioningMode = params.getStartupMode().equals("stbprovisioning");
+        mProvisioningMode = params.getStartupMode().equals(STB_PROVISIONING_MODE);
 
         SharedPrefsProvider sharedPrefsProvider = new SharedPrefsProviderImpl(getApplicationContext());
         PreferenceManager pm = new PreferenceManagerImpl(sharedPrefsProvider);
@@ -113,8 +116,8 @@ public class TvActivity extends Activity {
         mUcLivePlayer = new DvbPlayer(this, findViewById(R.id.tv_view), mWebDeviceInterface);
 
         mWebDeviceInterface.setUcPlayer(mUcPlayer);
-        mWebDeviceInterface.setAuthHandler(authentication);
         mWebDeviceInterface.setLiveUcPlayer(mUcLivePlayer);
+        mWebDeviceInterface.setAuthHandler(authentication);
         mNetworkReceiver.setOnConnectionChangeListener(mWebDeviceInterface);
     }
 
@@ -134,7 +137,6 @@ public class TvActivity extends Activity {
         if(!getPackageManager().hasSystemFeature(PackageManager.FEATURE_LEANBACK)) {
             hideSystemUI();
         }
-        // TODO: 1/29/18 mCreate is added to secure that webview is not loaded two times, onCreate and onPause.
         registerReceiver(mNetworkReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
         mCreated = true;
     }

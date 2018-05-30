@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.media.AudioManager;
 import android.net.ConnectivityManager;
 import android.net.DhcpInfo;
 import android.net.NetworkInfo;
@@ -48,6 +49,7 @@ import java.util.List;
 // please change the singleton pattern - sending Activity mActivity is bad in that situation
 public class UcWebInterface extends PlayerControls implements EventListener, OnNetworkChange, Serializable, AuthFailedHandler {
     private static final String TAG = UcWebInterface.class.getName();
+    public static final String STB_PROVISIONING_MODE = "stbprovisioning";
     private static final String JS_NAMESPACE = "ANDROMAN";
     private static final String EVENT_ID_READ = "ID read";
     private static final String PREFS_NAME = "EData";
@@ -56,18 +58,19 @@ public class UcWebInterface extends PlayerControls implements EventListener, OnN
     private JSONArray mCallbackFunctions;
     private WebView mWebView;
     protected Activity mActivity;
-    private String drmConaxJson;
     private StartupParameters startupParams;
+    private String drmConaxJson;
 
     private AuthHandler authHandler;
+    private PlayerAudioFocus mAudioFocus;
 
     public void setAuthHandler(AuthHandler ah) {
         authHandler = ah;
     }
 
-    public UcWebInterface(final Activity context, StartupParameters params) {
+    public UcWebInterface(Activity activity, StartupParameters params) {
         Log.d(TAG, "UcWebInterface created!");
-        mActivity = context;
+        mActivity = activity;
         mCallbackFunctions = new JSONArray();
         mInstanceId = new InstanceUniqueID(mActivity);
         startupParams = params != null ? params : new StartupParameters();
@@ -79,10 +82,9 @@ public class UcWebInterface extends PlayerControls implements EventListener, OnN
         webSettings.setMinimumFontSize(1);
         webSettings.setDomStorageEnabled(true);
 
-        if (startupParams.getStartupMode().equals("stbprovisioning")) {
+        if (startupParams.getStartupMode().equals(STB_PROVISIONING_MODE)) {
             mWebView.setBackgroundColor(Color.BLACK);
-        }
-        else {
+        } else {
             playEonSplash();
         }
 
@@ -123,6 +125,10 @@ public class UcWebInterface extends PlayerControls implements EventListener, OnN
         }
 
         loadUrl();
+
+        AudioManager audioManager = (AudioManager) mActivity.getSystemService(Context.AUDIO_SERVICE);
+        mAudioFocus = new PlayerAudioFocus(audioManager, audioFocusChangeListener);
+        mAudioFocus.requestAudioFocus();
     }
 
     protected WebView getWebView() {
@@ -162,22 +168,14 @@ public class UcWebInterface extends PlayerControls implements EventListener, OnN
     }
 
     @JavascriptInterface
-    public void initHal(String callbacks) {//, String servers) {
+    public void initHal(String callbacks) {
         Log.d(TAG, "initHal " + callbacks);
         analyzeClbks(callbacks);
         try {
-            mCallbackFunctions = new JSONArray();
-            JSONArray array = new JSONArray(callbacks);
-            for (int i = 0; i < array.length(); i++) {
-                Log.d(TAG, "INIT HAL ITEM: " + array.get(i));
-                mCallbackFunctions.put(array.get(i));
-            }
-            mCallbackFunctions.put("onPlayerStateChanged");
+            mCallbackFunctions = new JSONArray(callbacks);
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        //store("servers", servers);
     }
 
     private boolean onResumePauseActivity = false;
@@ -238,6 +236,12 @@ public class UcWebInterface extends PlayerControls implements EventListener, OnN
 
         if (onResumePauseActivity) {
             mWebView.loadUrl("javascript:" + strOnResumePauseActivity + "(" + value + ")");
+        }
+
+        if (value) {
+            mAudioFocus.requestAudioFocus();
+        } else {
+            mAudioFocus.abandonAudioFocus();
         }
     }
 
@@ -381,16 +385,12 @@ public class UcWebInterface extends PlayerControls implements EventListener, OnN
 
     @JavascriptInterface
     public String getMACNew() {
-        String mac;
-        mac = getMACAddress("eth0");
-        return mac;
+        return getMACAddress("eth0");
     }
 
     @JavascriptInterface
     public String getMACNewWIFI() {
-        String mac;
-        mac = getMACAddress("wlan0");
-        return mac;
+        return getMACAddress("wlan0");
     }
 
     @JavascriptInterface
@@ -825,4 +825,12 @@ public class UcWebInterface extends PlayerControls implements EventListener, OnN
             PreferenceUtils.setBoolean(mActivity, PrefKey.EON_SPLASH_SCREEN, true);
         }
     }
+
+    private AudioManager.OnAudioFocusChangeListener audioFocusChangeListener = focusChange -> {
+        if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
+            Log.d(TAG, "audio focus gain");
+        } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
+            pause();
+        }
+    };
 }
